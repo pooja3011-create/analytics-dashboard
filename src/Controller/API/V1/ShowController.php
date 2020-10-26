@@ -9,50 +9,71 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use App\Repository\ReviewRepository;
+use App\Repository\HotelRepository;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Method;
 
-class ShowController extends AbstractController {
-
-    /**
-     * @var NotificationRepository
-     */
+class ShowController extends AbstractController 
+{
+    private const DAILY_BOUNDARY = 29;
+    private const WEEKLY_BOUNDARY = 89;
+    
     private $reviewRepository;
+    
+    private  $hotelRepository;
 
-    public function __construct(ReviewRepository $reviewRepository) 
+    public function __construct(ReviewRepository $reviewRepository, HotelRepository $hotelRepository) 
     {
         $this->reviewRepository = $reviewRepository;
+        $this->hotelRepository = $hotelRepository;
     }
 
     /**
-     * @Route("/api/v1/show", methods={"POST"})
+     * @Route("/api/v1/show/{hotelId}", methods={"POST"})
      */
-    public function show(Request $request): JsonResponse 
+    public function show(Request $request, string $hotelId): JsonResponse 
     {
+        $hotel = $this->hotelRepository->find($hotelId);
+        if (!$hotel) {
+            throw new NotFoundHttpException("No hotel");
+        }
         $response = new JsonResponse();
-        $fromDate = strtotime($request->request->get('fromDate'));
-        $toDate = strtotime($request->request->get('toDate'));
-        $diff = ($toDate - $fromDate) / 60 / 60 / 24;
-        if ($diff <= 29) {
+
+        // DateTimeImmutable will throw an exception in the event the date is not valid
+        $fromDate = new DateTimeImmutable($request->request->get('fromDate'));
+        $toDate = new DateTimeImmutable($request->request->get('toDate'));
+        $diff = $fromDate->diff($toDate);
+        $groupBy = (function(DateInterval $diff): string 
+        {
+            $diffInDays = $diff->days;
+            Assert::notNull($diffInDays);
+
+            if ($diffInDays <= self::DAILY_BOUNDARY) {
+                return 'daily';
+            }
+            if ($diffInDays <= self::WEEKLY_BOUNDARY) {
+                return 'weekly';
+            }
+            if ($diffInDays > self::WEEKLY_BOUNDARY) {
+                return 'monthly';
+            }
+        })($diff);
+
+        $reviews = $this->reviewRepository->findByHotel($hotel, $fromDate, $toDate, $groupBy);
+        
+        // is there a minimum and maximum review count?
+        try {
             $response->setData([
-                'reviews' => $this->reviewRepository->findByDaily($request->request->get('hotelId'), $request->request->get('fromDate'), $request->request->get('toDate')),
-                'title' => 'Grouped daily',
+                'diff' => $diff->days,
+                'reviews' => $reviews,
+                'title' => "Group by {$groupBy}"
             ]);
-            
-        } elseif ($diff <= 89) {
-            return new JsonResponse([
-                'title' => 'Grouped weekly',
-                'diff' => $diff,
-                'reviews' => $this->reviewRepository->findByWeekly($request->request->get('hotelId'), $request->request->get('fromDate'), $request->request->get('toDate')),
-                
-            ]);
-        } else {
+        } 
+        catch (\Exception $e) {
             $response->setData([
-                'title' => 'Grouped monthly',
-                'diff' => $diff,
-                'reviews' => $this->reviewRepository->findByMonthly($request->request->get('hotelId'), $request->request->get('fromDate'), $request->request->get('toDate')),
+                'status' => 400,
+                'message' => $e->getMessage(),
             ]);
         }
         return $response;
     }
-
 }

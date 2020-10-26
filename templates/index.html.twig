@@ -5,7 +5,7 @@
             <div class="col-8">
                 <div class="tab-content" id="nav-tabContent">
                     <div class="tab-pane fade show active" id="list-fields" role="tabpanel" aria-labelledby="list-fields-list">
-                        <h3 class="title">Analytics Dashboard</h2>
+                        <h3 class="title">Analytics Dashboard</h3>
                         <div class="form">
                             <form @submit="formSubmit" method="post" id="show" class="">
                                 <select v-model="hotel" name="hotelName" id="hotelName" class="mx-sm-3 mb-2 form-inline form-control" name="patientId" required>
@@ -24,10 +24,9 @@
                                         <input type="text" name="toDate" v-model="to" class="form-control datepicker" autocomplete="off" id="toDate" placeholder="Y-m-d" required>
                                     </div>
                                     <div class="showbtn">
-                                    <input type="submit" class="btn btn-primary" value="show">
+                                        <input type="submit" class="btn btn-primary" value="show">
                                     </div>
                                 </div>
-                                
                             </form> 
                         </div>
                         <hr>
@@ -54,7 +53,7 @@
                 var fromDate = $("#fromDate").val();
                 var toDate = $("#toDate").val();
                 $.ajax({
-                    url: "{{ app.request.baseUrl }}/api/v1/show",
+                    url: "{{ app.request.baseUrl }}/api/v1/show/4",
                     data: {fromDate: fromDate, toDate: toDate, hotelId: hotelId},
                     type: "post",
                     dataType: "json",
@@ -89,7 +88,6 @@
                                             data: review,
                                         }
                                     ],
-
                                     chartOptions: {
                                         chart: {
                                             height: 350,
@@ -105,7 +103,7 @@
                                             curve: 'straight'
                                         },
                                         title: {
-                                            text: 'Average score over time by '+obj.title,
+                                            text: 'Average score over time by ' + obj.title,
                                             align: 'left'
                                         },
                                         grid: {
@@ -131,7 +129,7 @@
                                 },
 
                             })
-                            
+
 
                         } catch (ex) {
                             console.error(ex);
@@ -143,8 +141,7 @@
                 });
             });
         });
-        
-//Get date frm datepicker
+        //Get date frm datepicker
         $(document).ready(function () {
             $("#fromDate").datepicker({
                 format: 'yyyy-mm-dd',

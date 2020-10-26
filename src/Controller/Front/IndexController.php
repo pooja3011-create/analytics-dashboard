@@ -10,8 +10,8 @@ use Symfony\Component\Routing\Annotation\Route;
 use App\Entity\Hotel;
 use Doctrine\ORM\EntityManagerInterface;
 
-class IndexController extends AbstractController {
-
+class IndexController extends AbstractController 
+{
     /**
      * @var \Twig_Environment
      */
@@ -25,11 +25,11 @@ class IndexController extends AbstractController {
     public function __construct(
             \Twig\Environment $twig,
             EntityManagerInterface $entityManager
-    ) {
+    ) 
+    {
         $this->twig = $twig;
         $this->entityManager = $entityManager;
     }
-
     /**
      * @Route("/")
      */
@@ -40,7 +40,7 @@ class IndexController extends AbstractController {
                 [
                     'hotelData' => $hotelData
                 ]
-            );        
+        );
         return new Response($html);
     }
 
