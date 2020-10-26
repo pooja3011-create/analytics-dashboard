@@ -1,0 +1,174 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+    <div class="container">
+        <div class="row">
+            <div class="col-8">
+                <div class="tab-content" id="nav-tabContent">
+                    <div class="tab-pane fade show active" id="list-fields" role="tabpanel" aria-labelledby="list-fields-list">
+                        <h3 class="title">Analytics Dashboard</h2>
+                        <div class="form">
+                            <form @submit="formSubmit" method="post" id="show" class="">
+                                <select v-model="hotel" name="hotelName" id="hotelName" class="mx-sm-3 mb-2 form-inline form-control" name="patientId" required>
+                                    <option value="" disabled selected>Select  Hotel</option>
+                                    {% for hotel in hotelData %}
+                                        <option value="{{hotel.id}}">{{hotel.name}}</option><br />
+                                    {% endfor %}
+                                </select>   
+                                <div class="form-row form-inline">
+                                    <div class="form-group mx-sm-3 mb-2 datefrom">
+                                        <label for="from">From</label>
+                                        <input type="text" name="fromDate" v-model="from"  class="form-control datepicker" autocomplete="off" id="fromDate" placeholder="Y-m-d" required>
+                                    </div>
+                                    <div class="form-group mx-sm-3 mb-2 datefrom">
+                                        <label for="to">To</label>
+                                        <input type="text" name="toDate" v-model="to" class="form-control datepicker" autocomplete="off" id="toDate" placeholder="Y-m-d" required>
+                                    </div>
+                                    <div class="showbtn">
+                                    <input type="submit" class="btn btn-primary" value="show">
+                                    </div>
+                                </div>
+                                
+                            </form> 
+                        </div>
+                        <hr>
+                        <div id="app">
+                            <div id="chart">
+                                <apexchart type="line" height="350" :options="chartOptions" :series="series"></apexchart>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        //post selcted data
+        $(document).ready(function () {
+            $("#show").submit(function (event) {
+                event.preventDefault();
+                var hotelId = $("#hotelName").val();
+                var fromDate = $("#fromDate").val();
+                var toDate = $("#toDate").val();
+                $.ajax({
+                    url: "{{ app.request.baseUrl }}/api/v1/show",
+                    data: {fromDate: fromDate, toDate: toDate, hotelId: hotelId},
+                    type: "post",
+                    dataType: "json",
+                    success: function (response) {
+                        var JsonStringify = JSON.stringify(response);
+                        let score = [];
+                        let review = [];
+                        let date = [];
+
+                        try {
+                            var obj = JSON.parse(JsonStringify);
+                            $.each(response.reviews, function (i, item) {
+                                score.push(Math.round(item.score))
+                                review.push(item.review)
+                                date.push(item.Date)
+                            });
+                            //chart by daily, weekly,and monthly
+                            new Vue({
+                                el: '#app',
+                                components: {
+                                    apexchart: VueApexCharts,
+                                },
+                                data: {
+
+                                    series: [
+                                        {
+                                            name: "Score",
+                                            data: score,
+                                        },
+                                        {
+                                            name: "Review Count",
+                                            data: review,
+                                        }
+                                    ],
+
+                                    chartOptions: {
+                                        chart: {
+                                            height: 350,
+                                            type: 'line',
+                                            zoom: {
+                                                enabled: false
+                                            }
+                                        },
+                                        dataLabels: {
+                                            enabled: false
+                                        },
+                                        stroke: {
+                                            curve: 'straight'
+                                        },
+                                        title: {
+                                            text: 'Average score over time by '+obj.title,
+                                            align: 'left'
+                                        },
+                                        grid: {
+                                            row: {
+                                                colors: ['#f3f3f3', 'transparent'], // takes an array which will be repeated on columns
+                                                opacity: 0.5
+                                            },
+                                        },
+                                        yaxis: {
+                                            min: 0,
+                                            max: 100,
+                                            title: {
+                                                text: 'Score',
+                                            },
+                                        },
+                                        xaxis: {
+                                            categories: date,
+                                            title: {
+                                                text: 'Date',
+                                            },
+                                        }
+                                    },
+                                },
+
+                            })
+                            
+
+                        } catch (ex) {
+                            console.error(ex);
+                        }
+                    },
+                    error: function (error) {
+                        console.log(error);
+                    }
+                });
+            });
+        });
+        
+//Get date frm datepicker
+        $(document).ready(function () {
+            $("#fromDate").datepicker({
+                format: 'yyyy-mm-dd',
+                autoclose: true,
+            }).on('changeDate', function (selected) {
+                var minDate = new Date(selected.date.valueOf());
+                $('#toDate').datepicker('setStartDate', minDate);
+            });
+
+            $("#toDate").datepicker({
+                format: 'yyyy-mm-dd',
+                autoclose: true,
+            }).on('changeDate', function (selected) {
+                var minDate = new Date(selected.date.valueOf());
+                $('#fromDate').datepicker('setEndDate', minDate);
+            });
+        });
+    </script>
+{% endblock %}
+
+
+
+
+
+
+
+
